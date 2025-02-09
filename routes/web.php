@@ -32,6 +32,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/encomendas', [OrderController::class, 'index'])->name('orders.index');
     
     // Rotas para solicitação de produtos
+    Route::get('/produtos', [ProductRequestController::class, 'index'])->name('product-requests.index');
     Route::get('/produtos/solicitar', [ProductRequestController::class, 'create'])->name('product-requests.create');
     Route::post('/produtos/solicitar', [ProductRequestController::class, 'store'])->name('product-requests.store');
 
@@ -40,14 +41,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/colaboradores/{contributor}/avaliacoes', [ReviewController::class, 'index'])->name('reviews.contributor');
     Route::get('/colaboradores/{contributor}/avaliar', [ReviewController::class, 'create'])->name('reviews.create');
     Route::post('/avaliacoes', [ReviewController::class, 'store'])->name('reviews.store');
-});
-
-// Rotas protegidas para admin
-Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('/contribuinte/dashboard', [ContributorController::class, 'dashboard'])->name('contributor.dashboard');
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
 });
 
+// Rotas protegidas para admin
+// Route::middleware(['auth', 'admin'])->group(function () {
+//     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+// });
+
 // Rotas protegidas para contribuintes
-Route::middleware(['auth', 'contributor'])->group(function () {
-    Route::get('/contribuinte/dashboard', [ContributorController::class, 'dashboard'])->name('contributor.dashboard');
-});
+// Route::middleware(['auth', 'contributor'])->group(function () {
+//     Route::get('/contribuinte/dashboard', [ContributorController::class, 'dashboard'])->name('contributor.dashboard');
+// });

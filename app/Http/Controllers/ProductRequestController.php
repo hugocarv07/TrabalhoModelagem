@@ -7,6 +7,31 @@ use Illuminate\Http\Request;
 
 class ProductRequestController extends Controller
 {
+    public function index(Request $request)
+    {
+        $query = ProductRequest::with('user');
+
+        // Aplicar filtro por status se foi selecionado
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Aplicar filtro por categoria se foi selecionado
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        // Aplicar filtro por país de origem se foi selecionado
+        if ($request->filled('origin_country')) {
+            $query->where('origin_country', $request->origin_country);
+        }
+
+        // Ordenar por mais recente e paginar
+        $productRequests = $query->latest()->paginate(10);
+
+        return view('pages.products.index', compact('productRequests'));
+    }
+
     public function create()
     {
         return view('pages.products.request');
