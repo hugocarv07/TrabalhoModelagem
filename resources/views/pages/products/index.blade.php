@@ -128,11 +128,24 @@
                             {{ $request->deadline->format('d/m/Y') }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <a href="#" class="text-indigo-600 hover:text-indigo-900 mr-3">Ver Detalhes</a>
-                            @if($request->status === 'pending')
-                            <a href="#" class="text-red-600 hover:text-red-900">Cancelar</a>
-                            @endif
-                        </td>
+    <!-- Botão Ver Detalhes -->
+    <a href="{{ route('product-requests.show', $request->id) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">
+        Ver Detalhes
+    </a>
+
+    <!-- Botão Cancelar (somente se estiver pendente) -->
+    @if($request->status === 'pending')
+    <form action="{{ route('product-requests.destroy', $request->id) }}" method="POST" class="inline">
+        @csrf
+        @method('DELETE')
+        <button type="submit" class="text-red-600 hover:text-red-900"
+            onclick="return confirm('Tem certeza que deseja cancelar esta solicitação?');">
+            Cancelar
+        </button>
+    </form>
+    @endif
+</td>
+
                     </tr>
                     @empty
                     <tr>

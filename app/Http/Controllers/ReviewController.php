@@ -2,94 +2,110 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
 use App\Models\Review;
 use App\Models\User;
-use Illuminate\Http\Request;
+use App\Models\ProductRequest;
+use Illuminate\Support\Facades\Auth;
 
 class ReviewController extends Controller
 {
-    public function index(User $contributor = null)
+    // 🔹 Listar contribuintes elegíveis para avaliação (após aceitar pedidos)
+    public function contributorList()
     {
-        $query = Review::with(['user', 'contributor']);
-        
-        if ($contributor) {
-            $reviews = $query->where('contributor_id', $contributor->id)
-                ->latest()
-                ->paginate(10);
-
-            $averageRating = Review::where('contributor_id', $contributor->id)->avg('rating');
-            $totalReviews = Review::where('contributor_id', $contributor->id)->count();
-            $hasReviewed = auth()->check() ? Review::where('user_id', auth()->id())
-                ->where('contributor_id', $contributor->id)
-                ->exists() : false;
-
-            return view('pages.reviews.index', [
-                'contributor' => $contributor,
-                'reviews' => $reviews,
-                'averageRating' => $averageRating,
-                'totalReviews' => $totalReviews,
-                'hasReviewed' => $hasReviewed
-            ]);
+        $user = Auth::user();
+    
+        if ($user->is_contributor) {
+            // 🔹 Contribuidor só pode avaliar usuários que aceitaram sua proposta
+            $contributors = User::whereHas('productRequests', function ($query) use ($user) {
+                $query->whereHas('orderProposals', function ($subQuery) use ($user) {
+                    $subQuery->where('contributor_id', $user->id)->where('status', 'accepted');
+                });
+            })->get();
+        } else {
+            // 🔹 Usuário só pode avaliar contribuidores que enviaram propostas aceitas por ele
+            $contributors = User::whereHas('orderProposals', function ($query) use ($user) {
+                $query->where('status', 'accepted')->whereHas('productRequest', function ($subQuery) use ($user) {
+                    $subQuery->where('user_id', $user->id);
+                });
+            })->get();
         }
+    
+        return view('pages.reviews.list', compact('contributors'));
+    }
+    
 
-        // Lista todas as avaliações se nenhum contribuidor for especificado
-        $reviews = $query->latest()->paginate(10);
-        return view('pages.reviews.list', [
-            'reviews' => $reviews
-        ]);
+    
+
+    // 🔹 Formulário de Avaliação
+    public function create($contributorId)
+    {
+        $user = Auth::user();
+
+        // 🔹 Garantir que o colaborador pode ser avaliado
+        $contributor = User::whereHas('completedOrders', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })->orWhereHas('pendingOrders', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })->findOrFail($contributorId);
+
+        return view('pages.reviews.create', compact('contributor'));
     }
 
-    public function create(User $contributor)
-    {
-        if (!$contributor->isContributor()) {
-            abort(404);
-        }
-
-        $hasReviewed = Review::where('user_id', auth()->id())
-            ->where('contributor_id', $contributor->id)
-            ->exists();
-
-        if ($hasReviewed) {
-            return redirect()->route('reviews.contributor', $contributor)
-                ->with('error', 'Você já avaliou este colaborador.');
-        }
-
-        return view('pages.reviews.create', [
-            'contributor' => $contributor
-        ]);
-    }
-
+    // 🔹 Salvar a Avaliação
     public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'contributor_id' => 'required|exists:users,id',
-            'rating' => 'required|integer|min:1|max:5',
-            'comment' => 'required|string|min:10|max:1000'
-        ]);
+{
+    $request->validate([
+        'contributor_id' => 'required|exists:users,id',
+        'rating' => 'required|integer|min:1|max:5',
+        'comment' => 'required|string|max:500',
+    ]);
 
-        $contributor = User::findOrFail($validated['contributor_id']);
-        
-        if (!$contributor->isContributor()) {
-            abort(404);
-        }
+    $user = Auth::user();
+    $contributor = User::findOrFail($request->contributor_id);
 
-        $hasReviewed = Review::where('user_id', auth()->id())
-            ->where('contributor_id', $contributor->id)
+    // Verifica se o usuário logado é um contribuidor ou um solicitante de pedidos
+    if ($user->is_contributor) {
+        // 🔹 Contribuidor só pode avaliar um usuário que solicitou um produto e aprovou sua proposta
+        $hasValidOrder = ProductRequest::whereHas('orderProposals', function ($query) use ($user) {
+            $query->where('contributor_id', $user->id)->where('status', 'accepted');
+        })
+        ->where('user_id', $request->contributor_id)
+        ->where('status', 'in_progress')
+        ->exists();
+    } else {
+        // 🔹 Usuário só pode avaliar um contribuidor que enviou uma proposta aceita por ele
+        $hasValidOrder = ProductRequest::where('user_id', $user->id)
+            ->whereHas('orderProposals', function ($query) use ($contributor) {
+                $query->where('contributor_id', $contributor->id)->where('status', 'accepted');
+            })
+            ->where('status', 'in_progress')
             ->exists();
-
-        if ($hasReviewed) {
-            return redirect()->route('reviews.contributor', $contributor)
-                ->with('error', 'Você já avaliou este colaborador.');
-        }
-
-        Review::create([
-            'user_id' => auth()->id(),
-            'contributor_id' => $validated['contributor_id'],
-            'rating' => $validated['rating'],
-            'comment' => $validated['comment']
-        ]);
-
-        return redirect()->route('reviews.contributor', $contributor)
-            ->with('success', 'Avaliação enviada com sucesso!');
     }
+
+    if (!$hasValidOrder) {
+        return redirect()->route('reviews.list')->with('error', 'Você só pode avaliar usuários com quem teve um pedido aprovado.');
+    }
+
+    // 🔹 Verifica se já existe uma avaliação para esta relação de pedido
+    $alreadyReviewed = Review::where([
+        'user_id' => $user->id,
+        'contributor_id' => $request->contributor_id
+    ])->exists();
+
+    if ($alreadyReviewed) {
+        return redirect()->route('reviews.list')->with('error', 'Você já avaliou essa pessoa.');
+    }
+
+    // 🔹 Criar a avaliação
+    Review::create([
+        'user_id' => $user->id,
+        'contributor_id' => $request->contributor_id,
+        'rating' => $request->rating,
+        'comment' => $request->comment
+    ]);
+
+    return redirect()->route('reviews.list')->with('success', 'Avaliação enviada com sucesso!');
+}
+
 }
