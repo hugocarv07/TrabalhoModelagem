@@ -67,17 +67,34 @@ Route::middleware('auth')->group(function () {
 });
 
 // Rota para que qualquer usuário possa ver todas as avaliações
+
 Route::middleware(['auth'])->group(function () {
-    Route::get('/avaliacoes', [ReviewController::class, 'contributorList'])->name('reviews.list');
-    Route::get('/avaliacoes/{contributor}/avaliar', [ReviewController::class, 'create'])->name('reviews.create');
-    Route::post('/avaliacoes', [ReviewController::class, 'store'])->name('reviews.store');
+    Route::get('/avaliar/{userId}', [ReviewController::class, 'create'])->name('reviews.create'); // ✅ Agora suporta GET
+    Route::post('/avaliar', [ReviewController::class, 'store'])->name('reviews.store');
 });
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/avaliacoes', [ReviewController::class, 'contributorList'])->name('reviews.list'); 
+});
+
 
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::patch('/admin/sellers/{id}/approve', [AdminController::class, 'approveSeller'])->name('sellers.approve');
     Route::delete('/admin/sellers/{id}/reject', [AdminController::class, 'rejectSeller'])->name('sellers.reject');
 });
+
+Route::middleware('auth')->get('/produtos', [ProductRequestController::class, 'index'])->name('product-requests.index');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/minhas-propostas', [OrderProposalController::class, 'acceptedProposals'])->name('proposals.accepted');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/proposta/{id}', [OrderProposalController::class, 'show'])->name('proposals.show');
+    Route::patch('/proposta/{id}/concluir', [OrderProposalController::class, 'markAsCompleted'])->name('proposals.complete');
+});
+
+
 
 // Rotas protegidas para contribuintes
 // Route::middleware(['auth', 'contributor'])->group(function () {

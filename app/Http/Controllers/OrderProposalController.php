@@ -75,4 +75,40 @@ public function reject($id)
     return redirect()->back()->with('error', 'Proposta rejeitada.');
 }
 
+public function acceptedProposals()
+{
+    // Buscar todas as propostas aceitas do contribuinte logado
+    $proposals = OrderProposal::where('contributor_id', auth()->id())
+    ->whereIn('status', ['accepted', 'completed']) // ✅ Agora exibe ambas
+    ->with('productRequest.user')
+    ->latest()
+    ->paginate(10);
+
+
+    return view('pages.proposals', compact('proposals'));
+}
+public function show($id)
+{
+    $proposal = OrderProposal::where('id', $id)
+        ->where('contributor_id', auth()->id()) // Garantir que o contribuinte só veja suas propostas
+        ->with('productRequest.user') // Carregar detalhes do pedido e do cliente
+        ->firstOrFail();
+
+    return view('pages.proposal-details', compact('proposal'));
+}
+public function markAsCompleted($id)
+{
+    $proposal = OrderProposal::where('id', $id)
+        ->where('contributor_id', auth()->id()) // Garantir que o contribuinte só possa concluir suas propostas
+        ->firstOrFail();
+
+    // Atualizar o status para concluído
+    $proposal->update(['status' => 'completed']);
+
+    // Atualizar o status do pedido também
+    $proposal->productRequest->update(['status' => 'completed']);
+
+    return redirect()->route('proposals.show', $id)->with('success', 'Pedido marcado como concluído!');
+}
+
 }

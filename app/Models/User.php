@@ -96,4 +96,11 @@ class User extends Authenticatable
     {
         return $this->hasMany(Review::class, 'contributor_id');
     }
+
+    // Relacionamento: Um usuário pode receber várias avaliações
+public function reviews()
+{
+    return $this->hasMany(Review::class, 'contributor_id');
+}
+
 }

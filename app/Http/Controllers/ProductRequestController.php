@@ -10,7 +10,8 @@ class ProductRequestController extends Controller
 {
     public function index(Request $request)
     {
-        $query = ProductRequest::with('user');
+        $query = ProductRequest::with('user')->where('status', 'pending');
+
 
         // Aplicar filtros opcionais
         if ($request->filled('status')) {
@@ -31,8 +32,15 @@ class ProductRequestController extends Controller
     public function show($id)
     {
         $productRequest = ProductRequest::with(['user', 'orderProposals.contributor'])->findOrFail($id);
+    
+        // 🔹 Bloquear contribuintes de verem pedidos que não estejam pendentes
+        if (auth()->user()->is_contributor && $productRequest->status !== 'pending') {
+            return redirect()->route('product-requests.index')->with('error', 'Você só pode visualizar pedidos pendentes.');
+        }
+    
         return view('pages.products.show', compact('productRequest'));
     }
+    
     
     public function orderProposals()
 {

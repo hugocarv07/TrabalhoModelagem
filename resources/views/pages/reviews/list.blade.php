@@ -28,10 +28,12 @@
 
                     {{-- Impede o usuário de avaliar a si mesmo --}}
                     @if(auth()->id() !== $contributor->id)
-                        <a href="{{ route('reviews.create', ['contributor' => $contributor->id]) }}"
-                           class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
-                           Avaliar
-                        </a>
+                       
+<a href="{{ route('reviews.create', ['userId' => $contributor->id]) }}"
+    class="inline-flex items-center px-4 py-2 ...">
+    Avaliar
+</a>
+
                     @else
                         <span class="text-gray-400 text-sm">Você não pode se avaliar</span>
                     @endif

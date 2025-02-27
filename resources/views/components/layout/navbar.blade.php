@@ -18,6 +18,22 @@
 
             <!-- 🔹 Pedidos e Botão de Logout -->
             <div class="hidden sm:ml-6 sm:flex sm:items-center space-x-6">
+            @auth
+    @if(auth()->user()->is_contributor)
+            <a class="nav-link" href="{{ route('product-requests.index') }}">
+                <i class="fa-solid fa-cart-shopping"></i> Pedidos
+            </a>
+    @endif
+@endauth
+@auth
+    @if(auth()->user()->is_contributor)
+            <a class="nav-link" href="{{ route('proposals.accepted') }}">
+                <i class="fas fa-file-contract"></i> Minhas Propostas
+            </a>
+    @endif
+@endauth
+
+            
                 @auth
                     @if(Auth::user()->is_admin)
                         <!-- 🔹 Apenas administradores veem "Pedidos do Site" -->

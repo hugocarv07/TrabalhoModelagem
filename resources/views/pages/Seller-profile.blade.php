@@ -31,7 +31,7 @@
                         </div>
                     </div>
                     <div class="mt-5 flex justify-center sm:mt-0">
-                        <a href="{{ route('reviews.create', $seller->id) }}"
+                        <a href="{{ route('reviews.create', ['userId' => $seller->id]) }}"
                             class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
                             <i class="fas fa-star mr-2"></i>
                             Avaliar Vendedor
@@ -81,6 +81,33 @@
                     <p>Vendedor internacional especializado em produtos eletrônicos e tecnologia. Atuo principalmente no mercado asiático, com foco em importações do Japão e Coreia do Sul.</p>
                     <p class="mt-4">Garanto a autenticidade de todos os produtos e ofereço suporte completo durante todo o processo de importação.</p>
                 </div>
+            </div>
+
+            <!-- Seção de Avaliações -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Avaliações</h2>
+                @if($reviews->count())
+                    @foreach($reviews as $review)
+                        <div class="border p-4 mb-4 rounded-lg">
+                            <div class="flex items-center mb-2">
+                                <!-- Exibe o nome do usuário que fez a avaliação, se a relação estiver definida -->
+                                <span class="font-bold mr-2">{{ $review->user->name ?? 'Anônimo' }}</span>
+                                <div class="text-yellow-400">
+                                    @for($i = 1; $i <= 5; $i++)
+                                        @if($i <= $review->rating)
+                                            <i class="fas fa-star"></i>
+                                        @else
+                                            <i class="far fa-star"></i>
+                                        @endif
+                                    @endfor
+                                </div>
+                            </div>
+                            <p class="text-gray-700">{{ $review->comment }}</p>
+                        </div>
+                    @endforeach
+                @else
+                    <p class="text-gray-500">Ainda não há avaliações.</p>
+                @endif
             </div>
         </div>
     </div>

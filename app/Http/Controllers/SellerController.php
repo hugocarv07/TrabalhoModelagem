@@ -54,7 +54,7 @@ class SellerController extends Controller
         // Buscar avaliações do vendedor usando 'contributor_id'
         $averageRating = Review::where('contributor_id', $seller->id)->avg('rating') ?? 0;
         $totalReviews = Review::where('contributor_id', $seller->id)->count();
-        $reviews = Review::where('contributor_id', $seller->id)->latest()->take(5)->get();
+        $reviews = $seller->receivedReviews()->latest()->take(5)->get();
         $completedOrders = $seller->completed_orders ?? 0;
     
         return view('pages.seller-profile', compact(
